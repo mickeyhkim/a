@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>서울시 꽃가루농도위험지수</title>
+  <style>
+    :root{
+      --bg:#0b1020; --text:#e9ecf5; --muted:#aeb6d6;
+      --border:#263158;
+      --badge-low:#2b6cb0; --badge-mid:#b7791f; --badge-high:#c53030; --badge-vhigh:#7b2cbf;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+    body{
+      margin:0;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,"Noto Sans KR",sans-serif;
+      background: radial-gradient(1200px 800px at 20% 0%, #1a2655 0%, var(--bg) 55%);
+      color:var(--text);
+    }
+    .wrap{ max-width: 980px; margin: 28px auto; padding: 0 16px 40px; }
+    h1{ font-size: 22px; margin: 0 0 12px; letter-spacing: -.2px;}
+    .sub{ color:var(--muted); font-size: 13px; margin-bottom: 18px; }
+
+    .grid{ display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:14px; }
+    @media (max-width: 840px){ .grid{ grid-template-columns: 1fr; } }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border: 1px solid var(--border);
+      border-radius: 16px; padding: 16px;
+      box-shadow: var(--shadow);
+      position: relative;
+    }
+    .k{ font-size: 14px; color: var(--muted); margin-bottom: 8px; }
+    .v{ font-size: 28px; font-weight: 800; margin: 6px 0 10px; letter-spacing: -.6px; }
+    .meta{ font-size: 12px; color: var(--muted); }
+
+    .badge{
+      position:absolute; right: 14px; top: 14px;
+      font-size: 12px; padding: 6px 10px;
+      border-radius: 999px; font-weight: 700;
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.06);
+    }
+    .b-low{ background: color-mix(in oklab, var(--badge-low), #000 65%); }
+    .b-mid{ background: color-mix(in oklab, var(--badge-mid), #000 65%); }
+    .b-high{ background: color-mix(in oklab, var(--badge-high), #000 65%); }
+    .b-vhigh{ background: color-mix(in oklab, var(--badge-vhigh), #000 65%); }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <h1>서울시 꽃가루농도위험지수 (현재)</h1>
+    <div class="sub">기상청 기준 · 최신 발표값</div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="badge" id="badge-oak">-</div>
+        <div class="k">참나무</div>
+        <div class="v" id="val-oak">-</div>
+        <div class="meta">발표시각: <span id="time-oak">-</span></div>
+      </div>
+
+      <div class="card">
+        <div class="badge" id="badge-pine">-</div>
+        <div class="k">소나무</div>
+        <div class="v" id="val-pine">-</div>
+        <div class="meta">발표시각: <span id="time-pine">-</span></div>
+      </div>
+
+      <div class="card">
+        <div class="badge" id="badge-weed">-</div>
+        <div class="k">잡초류</div>
+        <div class="v" id="val-weed">-</div>
+        <div class="meta">발표시각: <span id="time-weed">-</span></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const PROXY = "https://r.jina.ai/https://www.weather.go.kr";
+    const LOCATION = "서울시";
+
+    const SOURCES = {
+      oak:  "/w/resources/jsp/life/imgdata_popup_test.jsp?CODE=D06&point=1",
+      pine: "/w/resources/jsp/life/imgdata_popup_test.jsp?CODE=D07&point=2",
+      weed: "/w/resources/jsp/life/imgdata_popup_test.jsp?CODE=D08&point=3"
+    };
+
+    const LEVEL_CLASS = (lvl) => {
+      if (lvl === "낮음") return "b-low";
+      if (lvl === "보통") return "b-mid";
+      if (lvl === "높음") return "b-high";
+      if (lvl === "매우높음" || lvl === "매우 높음") return "b-vhigh";
+      return "";
+    };
+
+    function normalizeText(t){
+      return t.replace(/\u00A0/g," ").replace(/\s+/g," ").trim();
+    }
+
+    function parseIssueTime(text){
+      const m = text.match(/(\d{4}\/\d{2}\/\d{2})\s*\([^)]+\)\s*(\d{2}:\d{2})\s*발표/);
+      return m ? `${m[1]} ${m[2]}` : "-";
+    }
+
+    function parseLevel(text){
+      const re = new RegExp(`${LOCATION}\s+(낮음|보통|높음|매우\s*높음)`);
+      const m = text.match(re);
+      return m ? m[1].replace(/\s+/g,"") : null;
+    }
+
+    async function load(kind){
+      try{
+        const res = await fetch(PROXY + SOURCES[kind], {cache:"no-store"});
+        const raw = await res.text();
+        const text = normalizeText(raw);
+
+        const level = parseLevel(text);
+        const time  = parseIssueTime(text);
+
+        const val = document.getElementById(`val-${kind}`);
+        const badge = document.getElementById(`badge-${kind}`);
+        const t = document.getElementById(`time-${kind}`);
+
+        if(!level){
+          val.textContent = "데이터 없음";
+          badge.textContent = "-";
+          badge.className = "badge";
+          t.textContent = time;
+          return;
+        }
+
+        val.textContent = level;
+        badge.textContent = level;
+        badge.className = `badge ${LEVEL_CLASS(level)}`;
+        t.textContent = time;
+      }catch(e){
+        document.getElementById(`val-${kind}`).textContent = "오류";
+      }
+    }
+
+    load("oak");
+    load("pine");
+    load("weed");
+  </script>
+</body>
+</html>
