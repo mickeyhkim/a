@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>오늘의 생활기상지수 대시보드</title>
+    <style>
+        /* 기본 스타일 설정 */
+        body {
+            font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+            background-color: #f0f4f8;
+            margin: 0;
+            padding: 40px 20px;
+            color: #333;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 40px;
+            font-size: 2rem;
+        }
+
+        /* 그리드 레이아웃 */
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        /* 개별 지수 카드 디자인 */
+        .card {
+            background-color: #ffffff;
+            border-radius: 20px;
+            padding: 35px 20px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+
+        .card h2 {
+            font-size: 1.1rem;
+            color: #555;
+            margin-top: 0;
+            margin-bottom: 25px;
+            line-height: 1.4;
+            height: 3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 상태 뱃지 디자인 */
+        .status-badge {
+            display: inline-block;
+            padding: 12px 30px;
+            border-radius: 50px;
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: #fff;
+            min-width: 100px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        /* 지수 단계별 색상 */
+        .level-low { background: linear-gradient(135deg, #3498db, #2980b9); }    /* 낮음 - 파랑 */
+        .level-normal { background: linear-gradient(135deg, #2ecc71, #27ae60); } /* 보통 - 초록 */
+        .level-high { background: linear-gradient(135deg, #f39c12, #e67e22); }   /* 높음 - 주황 */
+        .level-danger { background: linear-gradient(135deg, #e74c3c, #c0392b); } /* 매우 높음 - 빨강 */
+        
+        .date-info {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #7f8c8d;
+            font-size: 1rem;
+            background: #fff;
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 20px;
+            margin-left: auto;
+            margin-right: auto;
+            display: block;
+            width: fit-content;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            font-size: 0.85rem;
+            color: #bdc3c7;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🌿 오늘의 생활기상지수</h1>
+    <div class="date-info" id="current-date">데이터를 확인 중입니다...</div>
+
+    <div class="dashboard">
+        <!-- 참나무 꽃가루 -->
+        <div class="card">
+            <h2>꽃가루 농도 위험지수<br>(참나무)</h2>
+            <div class="status-badge" id="oak-pollen">-</div>
+        </div>
+
+        <!-- 소나무 꽃가루 -->
+        <div class="card">
+            <h2>꽃가루 농도 위험지수<br>(소나무)</h2>
+            <div class="status-badge" id="pine-pollen">-</div>
+        </div>
+
+        <!-- 잡초류 꽃가루 -->
+        <div class="card">
+            <h2>꽃가루 농도 위험지수<br>(잡초류)</h2>
+            <div class="status-badge" id="weed-pollen">-</div>
+        </div>
+
+        <!-- 대기정체지수 -->
+        <div class="card">
+            <h2>대기정체지수</h2>
+            <div class="status-badge" id="air-stagnation">-</div>
+        </div>
+    </div>
+
+    <footer>
+        * 이 페이지는 샘플 데이터로 작동하며, 실제 데이터를 연동하려면 공공데이터포털 API를 활용해야 합니다.
+    </footer>
+
+    <script>
+        // 오늘 날짜 표시
+        const dateElement = document.getElementById('current-date');
+        const today = new Date();
+        const dateString = `${today.getFullYear()}년 ${today.getMonth() + 1}월 ${today.getDate()}일`;
+        dateElement.innerText = `업데이트 기준: ${dateString}`;
+
+        // 샘플 데이터 (실제 API 연동 시 이 부분을 fetch 데이터로 교체)
+        const mockData = {
+            oak: "보통",
+            pine: "높음",
+            weed: "낮음",
+            air: "보통"
+        };
+
+        // 지수 상태에 따라 색상 클래스를 반환하는 함수
+        function getLevelClass(levelText) {
+            switch(levelText) {
+                case '낮음': return 'level-low';
+                case '보통': return 'level-normal';
+                case '높음': return 'level-high';
+                case '매우 높음': return 'level-danger';
+                default: return 'level-normal';
+            }
+        }
+
+        // 화면에 데이터 렌더링 함수
+        function renderData(elementId, statusText) {
+            const el = document.getElementById(elementId);
+            if(el) {
+                el.innerText = statusText;
+                el.className = `status-badge ${getLevelClass(statusText)}`;
+            }
+        }
+
+        // 페이지 로드 시 애니메이션 효과와 함께 데이터 표시
+        window.onload = () => {
+            setTimeout(() => {
+                renderData('oak-pollen', mockData.oak);
+                renderData('pine-pollen', mockData.pine);
+                renderData('weed-pollen', mockData.weed);
+                renderData('air-stagnation', mockData.air);
+            }, 300);
+        };
+    </script>
+
+</body>
+</html>
